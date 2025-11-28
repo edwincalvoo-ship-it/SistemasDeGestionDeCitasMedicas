@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalle de Doctor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50" onload="requireAuth() && loadDetalle()">
+    <header class="bg-green-600 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <a href="doctores.html" class="hover:text-green-200">
+                        <i class="fas fa-arrow-left text-xl"></i>
+                    </a>
+                    <h1 class="text-2xl font-bold">Detalle de Doctor</h1>
+                </div>
+                <button onclick="logout()" class="bg-green-700 hover:bg-green-800 px-4 py-2 rounded">
+                    <i class="fas fa-sign-out-alt mr-2"></i>Cerrar Sesión
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <div id="detalle-container" class="bg-white rounded-lg shadow-md p-6">
+            <div class="text-center py-8 text-gray-500">Cargando...</div>
+        </div>
+    </main>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        async function loadDetalle() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const id = urlParams.get('id');
+            
+            if (!id) {
+                window.location.href = 'doctores.html';
+                return;
+            }
+
+            const result = await apiFetch(API_ENDPOINTS.doctores);
+            if (result.success) {
+                const doctor = result.data.find(d => d.id_doctor == id);
+                if (doctor) displayDetalle(doctor);
+            }
+        }
+
+        function displayDetalle(d) {
+            document.getElementById('detalle-container').innerHTML = `
+                <div class="flex items-center mb-6 pb-6 border-b">
+                    <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mr-4">
+                        <i class="fas fa-user-md text-green-600 text-3xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">${d.nombre} ${d.apellido}</h2>
+                        <p class="text-green-600 font-medium">${d.especialidad}</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="font-bold text-gray-700 mb-3">Información Profesional</h3>
+                        <div class="space-y-2">
+                            <p><i class="fas fa-id-card text-green-600 mr-2"></i><strong>Documento:</strong> ${d.documento}</p>
+                            <p><i class="fas fa-certificate text-green-600 mr-2"></i><strong>Licencia:</strong> ${d.licencia}</p>
+                            <p><i class="fas fa-stethoscope text-green-600 mr-2"></i><strong>Especialidad:</strong> ${d.especialidad}</p>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-gray-700 mb-3">Información de Contacto</h3>
+                        <div class="space-y-2">
+                            <p><i class="fas fa-envelope text-green-600 mr-2"></i><strong>Correo:</strong> ${d.correo}</p>
+                            ${d.telefono ? `<p><i class="fas fa-phone text-green-600 mr-2"></i><strong>Teléfono:</strong> ${d.telefono}</p>` : ''}
+                            <p><i class="fas fa-circle text-green-600 mr-2"></i><strong>Estado:</strong> 
+                                <span class="${d.activo ? 'text-green-700' : 'text-red-700'}">${d.activo ? 'Activo' : 'Inactivo'}</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-6">
+                    <a href="horarios.html?doctor_id=${d.id_doctor}" class="inline-block bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded">
+                        <i class="fas fa-clock mr-2"></i>Ver Horarios
+                    </a>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
