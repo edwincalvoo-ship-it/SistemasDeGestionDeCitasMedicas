@@ -1,4 +1,7 @@
-type nul > app/__init__.py
-type nul > app/routers/__init__.py
-type nul > app/models/__init__.py
-type nul > app/schemas/__init__.py
+"""
+Módulo de routers - Endpoints REST de la API
+"""
+
+from app.routers import pacientes_api
+
+__all__ = ["pacientes_api"]
