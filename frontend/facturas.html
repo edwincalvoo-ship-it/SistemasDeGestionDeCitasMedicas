@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Facturas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50" onload="requireAuth() && loadCitasCompletadas() && loadMetodosPago() && loadFacturas()">
+    <!-- Header -->
+    <header class="bg-orange-600 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <a href="index.html" class="hover:text-orange-200">
+                        <i class="fas fa-arrow-left text-xl"></i>
+                    </a>
+                    <h1 class="text-2xl font-bold">Gestión de Facturas</h1>
+                </div>
+                <button onclick="logout()" class="bg-orange-700 hover:bg-orange-800 px-4 py-2 rounded">
+                    <i class="fas fa-sign-out-alt mr-2"></i>Cerrar Sesión
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm font-medium">Total Facturado</p>
+                        <h3 id="total-facturado" class="text-2xl font-bold text-orange-600">$0</h3>
+                    </div>
+                    <i class="fas fa-dollar-sign text-3xl text-orange-600"></i>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm font-medium">Pagadas</p>
+                        <h3 id="facturas-pagadas" class="text-2xl font-bold text-green-600">0</h3>
+                    </div>
+                    <i class="fas fa-check-circle text-3xl text-green-600"></i>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm font-medium">Pendientes</p>
+                        <h3 id="facturas-pendientes" class="text-2xl font-bold text-yellow-600">0</h3>
+                    </div>
+                    <i class="fas fa-clock text-3xl text-yellow-600"></i>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm font-medium">Anuladas</p>
+                        <h3 id="facturas-anuladas" class="text-2xl font-bold text-red-600">0</h3>
+                    </div>
+                    <i class="fas fa-ban text-3xl text-red-600"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form to create invoice -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">
+                <i class="fas fa-file-invoice-dollar mr-2"></i>Generar Nueva Factura
+            </h2>
+            <form id="form-factura" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Cita Completada*</label>
+                    <select id="cita" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" onchange="updateMonto()">
+                        <option value="">Seleccione una cita completada...</option>
+                    </select>
+                    <p class="text-sm text-gray-500 mt-1">Solo se muestran citas completadas sin factura</p>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Método de Pago*</label>
+                    <select id="metodo_pago" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500">
+                        <option value="">Seleccione método de pago...</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Monto ($)*</label>
+                    <input type="number" id="monto" required min="0" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" placeholder="0.00" oninput="calcularTotal()">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Descuento (%)</label>
+                    <input type="number" id="descuento" min="0" max="100" step="1" value="0" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" onchange="calcularTotal()">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-gray-700 font-medium mb-2">Observaciones</label>
+                    <textarea id="observaciones" rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" placeholder="Información adicional (opcional)"></textarea>
+                </div>
+                <div class="md:col-span-2 bg-orange-50 p-4 rounded-lg">
+                    <div class="flex justify-between items-center text-lg">
+                        <span class="font-semibold">Total a Pagar:</span>
+                        <span id="total-pagar" class="text-2xl font-bold text-orange-600">$0.00</span>
+                    </div>
+                </div>
+                <div class="md:col-span-2">
+                    <button type="submit" class="bg-orange-600 hover:bg-orange-700 text-white font-medium py-3 px-6 rounded-lg transition duration-200">
+                        <i class="fas fa-save mr-2"></i>Generar Factura
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Filters -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">
+                <i class="fas fa-filter mr-2"></i>Filtros
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Estado</label>
+                    <select id="filter-estado" class="w-full px-4 py-2 border border-gray-300 rounded-lg" onchange="filterFacturas()">
+                        <option value="">Todos los estados</option>
+                        <option value="pagada">Pagada</option>
+                        <option value="pendiente">Pendiente</option>
+                        <option value="anulada">Anulada</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Desde Fecha</label>
+                    <input type="date" id="filter-fecha-desde" class="w-full px-4 py-2 border border-gray-300 rounded-lg" onchange="filterFacturas()">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Hasta Fecha</label>
+                    <input type="date" id="filter-fecha-hasta" class="w-full px-4 py-2 border border-gray-300 rounded-lg" onchange="filterFacturas()">
+                </div>
+            </div>
+        </div>
+
+        <!-- Facturas List -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">
+                <i class="fas fa-file-invoice mr-2"></i>Lista de Facturas
+            </h2>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-gray-700 font-semibold">#</th>
+                            <th class="px-4 py-3 text-left text-gray-700 font-semibold">Fecha</th>
+                            <th class="px-4 py-3 text-left text-gray-700 font-semibold">Cita</th>
+                            <th class="px-4 py-3 text-left text-gray-700 font-semibold">Método Pago</th>
+                            <th class="px-4 py-3 text-left text-gray-700 font-semibold">Monto</th>
+                            <th class="px-4 py-3 text-left text-gray-700 font-semibold">Estado</th>
+                            <th class="px-4 py-3 text-left text-gray-700 font-semibold">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="facturas-tbody">
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-gray-500">Cargando...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/utils.js"></script>
+    <script>
+        let allFacturas = [];
+        let citasMap = {};
+
+        async function loadCitasCompletadas() {
+            const result = await apiFetch(API_ENDPOINTS.citas);
+            const select = document.getElementById('cita');
+            
+            if (result.success && result.data.length > 0) {
+                const citasCompletadas = result.data.filter(c => c.estado === 'completada');
+                citasCompletadas.forEach(c => {
+                    citasMap[c.id_cita] = c;
+                    select.innerHTML += `<option value="${c.id_cita}" data-monto="50000">Cita #${c.id_cita} - ${c.paciente} - ${c.fecha}</option>`;
+                });
+            }
+        }
+
+        async function loadMetodosPago() {
+            const result = await apiFetch(API_ENDPOINTS.metodosPago);
+            const select = document.getElementById('metodo_pago');
+            
+            if (result.success && result.data.length > 0) {
+                result.data.forEach(m => {
+                    select.innerHTML += `<option value="${m.id_metodo_pago}">${m.nombre}</option>`;
+                });
+            }
+        }
+
+        async function loadFacturas() {
+            const result = await apiFetch(API_ENDPOINTS.facturas);
+            allFacturas = result.success ? result.data : [];
+            displayFacturas(allFacturas);
+            updateStats(allFacturas);
+        }
+
+        function updateStats(facturas) {
+            const pagadas = facturas.filter(f => f.estado === 'pagada').length;
+            const pendientes = facturas.filter(f => f.estado === 'pendiente').length;
+            const anuladas = facturas.filter(f => f.estado === 'anulada').length;
+            const totalFacturado = facturas
+                .filter(f => f.estado === 'pagada')
+                .reduce((sum, f) => sum + parseFloat(f.monto || 0), 0);
+
+            document.getElementById('total-facturado').textContent = '$' + totalFacturado.toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('facturas-pagadas').textContent = pagadas;
+            document.getElementById('facturas-pendientes').textContent = pendientes;
+            document.getElementById('facturas-anuladas').textContent = anuladas;
+        }
+
+        function displayFacturas(facturas) {
+            const tbody = document.getElementById('facturas-tbody');
+            
+            if (facturas.length > 0) {
+                tbody.innerHTML = facturas.map(f => {
+                    const estadoColor = {
+                        'pagada': 'bg-green-100 text-green-800',
+                        'pendiente': 'bg-yellow-100 text-yellow-800',
+                        'anulada': 'bg-red-100 text-red-800'
+                    };
+                    
+                    // Formatear fecha correctamente
+                    const fechaEmision = f.fecha_emision ? new Date(f.fecha_emision).toLocaleDateString('es-CO') : 'N/A';
+                    
+                    return `
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="px-4 py-3 font-semibold">#${f.id_factura || 'N/A'}</td>
+                            <td class="px-4 py-3">${fechaEmision}</td>
+                            <td class="px-4 py-3">Cita #${f.id_cita || 'N/A'}</td>
+                            <td class="px-4 py-3">
+                                <span class="text-sm">${getMetodoPagoNombre(f.id_metodo_pago)}</span>
+                            </td>
+                            <td class="px-4 py-3 font-bold text-orange-600">$${parseFloat(f.monto || 0).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                            <td class="px-4 py-3">
+                                <span class="px-3 py-1 rounded-full text-xs font-semibold ${estadoColor[f.estado] || 'bg-gray-100'}">${f.estado || 'N/A'}</span>
+                            </td>
+                            <td class="px-4 py-3">
+                                <button onclick="verFactura(${f.id_factura})" class="text-blue-600 hover:text-blue-800 mr-2" title="Ver factura">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button onclick="imprimirFactura(${f.id_factura})" class="text-green-600 hover:text-green-800 mr-2" title="Imprimir">
+                                    <i class="fas fa-print"></i>
+                                </button>
+                                ${f.estado === 'pendiente' ? `
+                                    <button onclick="marcarPagada(${f.id_factura})" class="text-purple-600 hover:text-purple-800" title="Marcar como pagada">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                ` : ''}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-500">No hay facturas registradas</td></tr>';
+            }
+        }
+
+        function filterFacturas() {
+            const estado = document.getElementById('filter-estado').value;
+            const fechaDesde = document.getElementById('filter-fecha-desde').value;
+            const fechaHasta = document.getElementById('filter-fecha-hasta').value;
+
+            const filtered = allFacturas.filter(f => {
+                const matchEstado = !estado || f.estado === estado;
+                const fechaFactura = new Date(f.fecha_emision).toISOString().split('T')[0];
+                const matchFechaDesde = !fechaDesde || fechaFactura >= fechaDesde;
+                const matchFechaHasta = !fechaHasta || fechaFactura <= fechaHasta;
+                
+                return matchEstado && matchFechaDesde && matchFechaHasta;
+            });
+
+            displayFacturas(filtered);
+        }
+
+        function getMetodoPagoNombre(id) {
+            const metodos = {1: 'Efectivo', 2: 'Tarjeta', 3: 'Seguro', 4: 'Transferencia'};
+            return metodos[id] || 'N/A';
+        }
+
+        function updateMonto() {
+            const citaSelect = document.getElementById('cita');
+            const selectedOption = citaSelect.options[citaSelect.selectedIndex];
+            if (selectedOption.value) {
+                document.getElementById('monto').value = selectedOption.getAttribute('data-monto') || 50000;
+                calcularTotal();
+            }
+        }
+
+        function calcularTotal() {
+            const monto = parseFloat(document.getElementById('monto').value) || 0;
+            const descuento = parseFloat(document.getElementById('descuento').value) || 0;
+            const total = monto * (1 - descuento / 100);
+            document.getElementById('total-pagar').textContent = '$' + total.toFixed(2);
+        }
+
+        document.getElementById('form-factura').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const data = {
+                id_cita: parseInt(document.getElementById('cita').value),
+                id_metodo_pago: parseInt(document.getElementById('metodo_pago').value),
+                monto: parseFloat(document.getElementById('total-pagar').textContent.replace('$', '').replace(/,/g, '')),
+                observaciones: document.getElementById('observaciones').value || null
+            };
+            
+            const result = await apiFetch(API_ENDPOINTS.facturas, {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
+            
+            if (result.success) {
+                showToast('Factura generada exitosamente', 'success');
+                document.getElementById('form-factura').reset();
+                document.getElementById('total-pagar').textContent = '$0.00';
+                loadFacturas();
+                loadCitasCompletadas();
+            } else {
+                showToast('Error: ' + result.mensaje, 'error');
+            }
+        });
+
+        function verFactura(id) {
+            window.location.href = `detalle-factura.html?id=${id}`;
+        }
+
+        function imprimirFactura(id) {
+            alert(`Imprimir factura #${id} - Funcionalidad en desarrollo`);
+        }
+
+        async function marcarPagada(id) {
+            if (confirm('¿Confirmar que esta factura ha sido pagada?')) {
+                const result = await apiFetch(`/api/facturas/${id}/estado`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ estado: 'pagada' })
+                });
+                
+                if (result.success) {
+                    showToast('Factura marcada como pagada', 'success');
+                    loadFacturas();
+                } else {
+                    showToast('Error: ' + result.mensaje, 'error');
+                }
+            }
+        }
+
+        // Inicializar montos sugeridos por especialidad
+        const montosEspecialidad = {
+            'Medicina General': 50000,
+            'Pediatría': 60000,
+            'Cardiología': 80000,
+            'Dermatología': 70000,
+            'Ginecología': 75000
+        };
+    </script>
+</body>
+</html>
