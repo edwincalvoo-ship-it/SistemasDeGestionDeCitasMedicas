@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Doctores</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50" onload="requireAuth() && loadDoctores() && loadEspecialidades()">
+    <!-- Header -->
+    <header class="bg-green-600 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <a href="index.html" class="hover:text-green-200">
+                        <i class="fas fa-arrow-left text-xl"></i>
+                    </a>
+                    <h1 class="text-2xl font-bold">Gestión de Doctores</h1>
+                </div>
+                <button onclick="logout()" class="bg-green-700 hover:bg-green-800 px-4 py-2 rounded">
+                    <i class="fas fa-sign-out-alt mr-2"></i>Cerrar Sesión
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Form to add doctor (only for admin) -->
+        <div id="form-section" class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">
+                <i class="fas fa-user-md mr-2"></i>Registrar Nuevo Doctor
+            </h2>
+            <form id="form-doctor" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Nombre*</label>
+                    <input type="text" id="nombre" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Apellido*</label>
+                    <input type="text" id="apellido" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Documento*</label>
+                    <input type="text" id="documento" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Correo*</label>
+                    <input type="email" id="correo" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Teléfono</label>
+                    <input type="tel" id="telefono" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Licencia Médica*</label>
+                    <input type="text" id="licencia" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-gray-700 font-medium mb-2">Especialidad*</label>
+                    <select id="especialidad" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                        <option value="">Seleccione una especialidad...</option>
+                    </select>
+                </div>
+                <div class="md:col-span-2">
+                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg transition duration-200">
+                        <i class="fas fa-save mr-2"></i>Registrar Doctor
+                    </button>
+                </div>
+            </form>
+            <div id="form-message" class="hidden mt-4 p-4 rounded"></div>
+        </div>
+
+        <!-- Filters -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">
+                <i class="fas fa-filter mr-2"></i>Filtros
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Buscar por nombre</label>
+                    <input type="text" id="search-nombre" placeholder="Nombre del doctor..." 
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                        onkeyup="filterDoctores()">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Filtrar por especialidad</label>
+                    <select id="filter-especialidad" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                        onchange="filterDoctores()">
+                        <option value="">Todas las especialidades</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Estado</label>
+                    <select id="filter-estado" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                        onchange="filterDoctores()">
+                        <option value="">Todos</option>
+                        <option value="true">Activos</option>
+                        <option value="false">Inactivos</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table of doctors -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">
+                <i class="fas fa-list mr-2"></i>Lista de Doctores
+            </h2>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-gray-700 font-semibold">Nombre</th>
+                            <th class="px-4 py-3 text-left text-gray-700 font-semibold">Documento</th>
+                            <th class="px-4 py-3 text-left text-gray-700 font-semibold">Especialidad</th>
+                            <th class="px-4 py-3 text-left text-gray-700 font-semibold">Licencia</th>
+                            <th class="px-4 py-3 text-left text-gray-700 font-semibold">Estado</th>
+                            <th class="px-4 py-3 text-left text-gray-700 font-semibold">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="doctores-tbody">
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-gray-500">Cargando...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        let allDoctores = [];
+        let especialidadesMap = {};
+
+        async function loadEspecialidades() {
+            const result = await apiFetch('/api/doctores/especialidades/listar');
+            const selectEsp = document.getElementById('especialidad');
+            const filterEsp = document.getElementById('filter-especialidad');
+            
+            if (result.success && result.data.length > 0) {
+                result.data.forEach(e => {
+                    especialidadesMap[e.id_especialidad] = e.nombre;
+                    selectEsp.innerHTML += `<option value="${e.id_especialidad}">${e.nombre}</option>`;
+                    filterEsp.innerHTML += `<option value="${e.nombre}">${e.nombre}</option>`;
+                });
+            }
+        }
+
+        async function loadDoctores() {
+            const result = await apiFetch(API_ENDPOINTS.doctores);
+            allDoctores = result.success ? result.data : [];
+            displayDoctores(allDoctores);
+        }
+
+        function displayDoctores(doctores) {
+            const tbody = document.getElementById('doctores-tbody');
+            
+            if (doctores.length > 0) {
+                tbody.innerHTML = doctores.map(d => `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="px-4 py-3">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                                    <i class="fas fa-user-md text-green-600"></i>
+                                </div>
+                                <div>
+                                    <div class="font-semibold">${d.nombre} ${d.apellido}</div>
+                                    <div class="text-sm text-gray-500">${d.correo}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3">${d.documento}</td>
+                        <td class="px-4 py-3">
+                            <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
+                                ${d.especialidad || 'N/A'}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3">${d.licencia}</td>
+                        <td class="px-4 py-3">
+                            ${d.activo 
+                                ? '<span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">Activo</span>'
+                                : '<span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm">Inactivo</span>'
+                            }
+                        </td>
+                        <td class="px-4 py-3">
+                            <button class="text-blue-600 hover:text-blue-800 mr-2" onclick="verHorarios(${d.id_doctor})" title="Ver horarios">
+                                <i class="fas fa-clock"></i>
+                            </button>
+                            <button class="text-green-600 hover:text-green-800 mr-2" onclick="verDetalles(${d.id_doctor})" title="Ver detalles">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="text-red-600 hover:text-red-800" onclick="toggleEstado(${d.id_doctor}, ${d.activo})" title="${d.activo ? 'Desactivar' : 'Activar'}">
+                                <i class="fas fa-${d.activo ? 'ban' : 'check'}"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500">No hay doctores registrados</td></tr>';
+            }
+        }
+
+        function filterDoctores() {
+            const searchNombre = document.getElementById('search-nombre').value.toLowerCase();
+            const filterEsp = document.getElementById('filter-especialidad').value;
+            const filterEstado = document.getElementById('filter-estado').value;
+
+            const filtered = allDoctores.filter(d => {
+                const matchNombre = !searchNombre || 
+                    (d.nombre + ' ' + d.apellido).toLowerCase().includes(searchNombre);
+                const matchEsp = !filterEsp || d.especialidad === filterEsp;
+                const matchEstado = !filterEstado || d.activo.toString() === filterEstado;
+                
+                return matchNombre && matchEsp && matchEstado;
+            });
+
+            displayDoctores(filtered);
+        }
+
+        document.getElementById('form-doctor').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const user = JSON.parse(localStorage.getItem('user'));
+            if (user.rol !== 'admin') {
+                alert('Solo los administradores pueden registrar doctores');
+                return;
+            }
+
+            const data = {
+                nombre: document.getElementById('nombre').value,
+                apellido: document.getElementById('apellido').value,
+                documento: document.getElementById('documento').value,
+                correo: document.getElementById('correo').value,
+                telefono: document.getElementById('telefono').value || null,
+                licencia: document.getElementById('licencia').value,
+                id_especialidad: parseInt(document.getElementById('especialidad').value)
+            };
+            
+            const result = await apiFetch(API_ENDPOINTS.doctores, {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
+            
+            const messageDiv = document.getElementById('form-message');
+            if (result.success) {
+                messageDiv.className = 'mt-4 p-4 rounded bg-green-100 text-green-700';
+                messageDiv.textContent = result.mensaje;
+                messageDiv.classList.remove('hidden');
+                document.getElementById('form-doctor').reset();
+                loadDoctores();
+            } else {
+                messageDiv.className = 'mt-4 p-4 rounded bg-red-100 text-red-700';
+                messageDiv.textContent = result.mensaje;
+                messageDiv.classList.remove('hidden');
+            }
+
+            setTimeout(() => messageDiv.classList.add('hidden'), 5000);
+        });
+
+        async function toggleEstado(id, activo) {
+            const user = JSON.parse(localStorage.getItem('user'));
+            if (user.rol !== 'admin') {
+                alert('Solo los administradores pueden cambiar el estado');
+                return;
+            }
+
+            if (confirm(`¿Está seguro de ${activo ? 'desactivar' : 'activar'} este doctor?`)) {
+                const result = await apiFetch(`${API_ENDPOINTS.doctores}/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ activo: !activo })
+                });
+                
+                if (result.success) {
+                    alert('Estado actualizado exitosamente');
+                    loadDoctores();
+                }
+            }
+        }
+
+        function verHorarios(id) {
+            window.location.href = `horarios.html?doctor_id=${id}`;
+        }
+
+        function verDetalles(id) {
+            window.location.href = `detalle-doctor.html?id=${id}`;
+        }
+
+        // Ocultar formulario si no es admin
+        window.addEventListener('load', () => {
+            const user = JSON.parse(localStorage.getItem('user'));
+            if (user && user.rol !== 'admin') {
+                document.getElementById('form-section').classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
