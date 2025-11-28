@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Cita Médica</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50" onload="requireAuth() && loadCita()">
+    <!-- Header -->
+    <header class="bg-blue-600 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <a href="gestionar-citas.html" class="hover:text-blue-200">
+                        <i class="fas fa-arrow-left text-xl"></i>
+                    </a>
+                    <h1 class="text-2xl font-bold">Editar Cita Médica</h1>
+                </div>
+                <button onclick="logout()" class="bg-blue-700 hover:bg-blue-800 px-4 py-2 rounded">
+                    <i class="fas fa-sign-out-alt mr-2"></i>Cerrar Sesión
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <!-- Form Card -->
+            <div class="bg-white rounded-lg shadow-md p-8">
+                <div class="flex items-center mb-6">
+                    <div class="bg-blue-100 p-3 rounded-full mr-4">
+                        <i class="fas fa-edit text-blue-600 text-2xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Modificar Cita</h2>
+                        <p class="text-gray-600">Actualice los datos de la cita médica</p>
+                    </div>
+                </div>
+
+                <form id="form-editar-cita" class="space-y-6">
+                    <!-- ID Cita (oculto) -->
+                    <input type="hidden" id="id_cita">
+
+                    <!-- Sección 1: Datos del Paciente y Doctor -->
+                    <div class="border-b pb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                            <i class="fas fa-user-friends mr-2 text-blue-600"></i>Información de Participantes
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-2">
+                                    Paciente*
+                                    <span class="text-red-500">●</span>
+                                </label>
+                                <select id="paciente" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200">
+                                    <option value="">Seleccione un paciente...</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-2">
+                                    Doctor*
+                                    <span class="text-red-500">●</span>
+                                </label>
+                                <select id="doctor" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200">
+                                    <option value="">Seleccione un doctor...</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sección 2: Fecha y Hora -->
+                    <div class="border-b pb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                            <i class="fas fa-clock mr-2 text-blue-600"></i>Fecha y Hora de la Cita
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-2">
+                                    Fecha*
+                                    <span class="text-red-500">●</span>
+                                </label>
+                                <input type="date" id="fecha" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200">
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-2">
+                                    Hora*
+                                    <span class="text-red-500">●</span>
+                                </label>
+                                <input type="time" id="hora" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sección 3: Estado -->
+                    <div class="border-b pb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                            <i class="fas fa-info-circle mr-2 text-blue-600"></i>Estado de la Cita
+                        </h3>
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2">Estado*</label>
+                            <select id="estado" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200">
+                                <option value="pendiente">Pendiente</option>
+                                <option value="confirmada">Confirmada</option>
+                                <option value="completada">Completada</option>
+                                <option value="cancelada">Cancelada</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Sección 4: Información Adicional -->
+                    <div class="border-b pb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                            <i class="fas fa-notes-medical mr-2 text-blue-600"></i>Información Adicional
+                        </h3>
+                        <div class="grid grid-cols-1 gap-6">
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-2">Motivo de Consulta*</label>
+                                <textarea id="motivo" required rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200" placeholder="Describa el motivo de la consulta..."></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-2">Observaciones</label>
+                                <textarea id="observaciones" rows="2" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200" placeholder="Observaciones adicionales (opcional)..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Botones de Acción -->
+                    <div class="flex justify-end space-x-4 pt-6">
+                        <a href="gestionar-citas.html" class="px-6 py-3 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg font-medium transition duration-200">
+                            <i class="fas fa-times mr-2"></i>Cancelar
+                        </a>
+                        <button type="submit" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-md transition duration-200">
+                            <i class="fas fa-save mr-2"></i>Guardar Cambios
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/utils.js"></script>
+    <script>
+        let citaId = null;
+
+        async function loadCita() {
+            const urlParams = new URLSearchParams(window.location.search);
+            citaId = urlParams.get('id');
+            
+            if (!citaId) {
+                showToast('ID de cita no proporcionado', 'error');
+                setTimeout(() => window.location.href = 'gestionar-citas.html', 2000);
+                return;
+            }
+
+            // Cargar pacientes y doctores primero
+            await loadPacientes();
+            await loadDoctores();
+
+            // Luego cargar datos de la cita
+            const result = await apiFetch(`${API_ENDPOINTS.citas}/${citaId}`);
+            
+            if (result.success) {
+                const cita = result.data;
+                document.getElementById('id_cita').value = cita.id_cita;
+                document.getElementById('paciente').value = cita.id_paciente;
+                document.getElementById('doctor').value = cita.id_doctor;
+                document.getElementById('fecha').value = cita.fecha;
+                document.getElementById('hora').value = cita.hora;
+                document.getElementById('estado').value = cita.estado;
+                document.getElementById('motivo').value = cita.motivo || '';
+                document.getElementById('observaciones').value = cita.observaciones || '';
+            } else {
+                showToast('Error al cargar la cita', 'error');
+                setTimeout(() => window.location.href = 'gestionar-citas.html', 2000);
+            }
+        }
+
+        async function loadPacientes() {
+            const result = await apiFetch(API_ENDPOINTS.pacientes);
+            const select = document.getElementById('paciente');
+            if (result.success && result.data.length > 0) {
+                result.data.forEach(p => {
+                    select.innerHTML += `<option value="${p.id_paciente}">${p.nombre} ${p.apellido} - ${p.documento}</option>`;
+                });
+            }
+        }
+
+        async function loadDoctores() {
+            const result = await apiFetch(API_ENDPOINTS.doctores);
+            const select = document.getElementById('doctor');
+            if (result.success && result.data.length > 0) {
+                result.data.forEach(d => {
+                    select.innerHTML += `<option value="${d.id_doctor}">${d.nombre} ${d.apellido} - ${d.especialidad}</option>`;
+                });
+            }
+        }
+
+        document.getElementById('form-editar-cita').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const data = {
+                id_paciente: parseInt(document.getElementById('paciente').value),
+                id_doctor: parseInt(document.getElementById('doctor').value),
+                fecha: document.getElementById('fecha').value,
+                hora: document.getElementById('hora').value,
+                estado: document.getElementById('estado').value,
+                motivo: document.getElementById('motivo').value,
+                observaciones: document.getElementById('observaciones').value || null
+            };
+
+            const result = await apiFetch(`${API_ENDPOINTS.citas}/${citaId}`, {
+                method: 'PUT',
+                body: JSON.stringify(data)
+            });
+
+            if (result.success) {
+                showToast('Cita actualizada exitosamente', 'success');
+                setTimeout(() => {
+                    window.location.href = 'gestionar-citas.html';
+                }, 1500);
+            } else {
+                showToast('Error: ' + result.mensaje, 'error');
+            }
+        });
+    </script>
+</body>
+</html>
