@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Horarios</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50" onload="requireAuth() && loadDoctores() && checkUrlParams()">
+    <!-- Header -->
+    <header class="bg-indigo-600 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <a href="doctores.html" class="hover:text-indigo-200">
+                        <i class="fas fa-arrow-left text-xl"></i>
+                    </a>
+                    <h1 class="text-2xl font-bold">Gestión de Horarios Médicos</h1>
+                </div>
+                <button onclick="logout()" class="bg-indigo-700 hover:bg-indigo-800 px-4 py-2 rounded">
+                    <i class="fas fa-sign-out-alt mr-2"></i>Cerrar Sesión
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Form to add schedule -->
+        <div id="form-section" class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">
+                <i class="fas fa-clock mr-2"></i>Registrar Nuevo Horario
+            </h2>
+            <form id="form-horario" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Doctor*</label>
+                    <select id="doctor" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" onchange="loadHorariosDoctor()">
+                        <option value="">Seleccione un doctor...</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Día de la Semana*</label>
+                    <select id="dia_semana" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                        <option value="">Seleccione un día...</option>
+                        <option value="Lunes">Lunes</option>
+                        <option value="Martes">Martes</option>
+                        <option value="Miércoles">Miércoles</option>
+                        <option value="Jueves">Jueves</option>
+                        <option value="Viernes">Viernes</option>
+                        <option value="Sábado">Sábado</option>
+                        <option value="Domingo">Domingo</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Hora Inicio*</label>
+                    <input type="time" id="hora_inicio" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Hora Fin*</label>
+                    <input type="time" id="hora_fin" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div class="md:col-span-2">
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-6 rounded-lg transition duration-200">
+                        <i class="fas fa-save mr-2"></i>Registrar Horario
+                    </button>
+                </div>
+            </form>
+            <div id="form-message" class="hidden mt-4 p-4 rounded"></div>
+        </div>
+
+        <!-- Horarios por Doctor -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">
+                <i class="fas fa-calendar-alt mr-2"></i>Horarios por Doctor
+            </h2>
+            
+            <div class="mb-6">
+                <label class="block text-gray-700 font-medium mb-2">Seleccionar Doctor</label>
+                <select id="filter-doctor" class="w-full md:w-1/2 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" onchange="loadHorariosDoctor()">
+                    <option value="">Seleccione un doctor...</option>
+                </select>
+            </div>
+
+            <div id="horarios-container">
+                <p class="text-center text-gray-500 py-8">Seleccione un doctor para ver sus horarios</p>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        let doctoresMap = {};
+
+        function checkUrlParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const doctorId = urlParams.get('doctor_id');
+            if (doctorId) {
+                setTimeout(() => {
+                    document.getElementById('doctor').value = doctorId;
+                    document.getElementById('filter-doctor').value = doctorId;
+                    loadHorariosDoctor();
+                }, 500);
+            }
+        }
+
+        async function loadDoctores() {
+            const result = await apiFetch(API_ENDPOINTS.doctores);
+            const selectDoctor = document.getElementById('doctor');
+            const filterDoctor = document.getElementById('filter-doctor');
+            
+            if (result.success && result.data.length > 0) {
+                result.data.forEach(d => {
+                    doctoresMap[d.id_doctor] = d;
+                    const option = `<option value="${d.id_doctor}">${d.nombre} ${d.apellido} - ${d.especialidad}</option>`;
+                    selectDoctor.innerHTML += option;
+                    filterDoctor.innerHTML += option;
+                });
+            }
+        }
+
+        async function loadHorariosDoctor() {
+            const doctorId = document.getElementById('filter-doctor').value || document.getElementById('doctor').value;
+            
+            if (!doctorId) {
+                document.getElementById('horarios-container').innerHTML = 
+                    '<p class="text-center text-gray-500 py-8">Seleccione un doctor para ver sus horarios</p>';
+                return;
+            }
+
+            const result = await apiFetch(`/api/horarios/doctor/${doctorId}`);
+            const container = document.getElementById('horarios-container');
+
+            if (result.success && result.data.length > 0) {
+                const doctor = doctoresMap[doctorId];
+                
+                // Agrupar horarios por día
+                const horariosPorDia = {};
+                result.data.forEach(h => {
+                    if (!horariosPorDia[h.dia_semana]) {
+                        horariosPorDia[h.dia_semana] = [];
+                    }
+                    horariosPorDia[h.dia_semana].push(h);
+                });
+
+                const diasOrden = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+                
+                container.innerHTML = `
+                    <div class="mb-6 p-4 bg-indigo-50 rounded-lg">
+                        <h3 class="text-lg font-bold text-indigo-800">
+                            <i class="fas fa-user-md mr-2"></i>${doctor.nombre} ${doctor.apellido}
+                        </h3>
+                        <p class="text-indigo-600">${doctor.especialidad}</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        ${diasOrden.map(dia => {
+                            const horariosDelDia = horariosPorDia[dia] || [];
+                            return `
+                                <div class="border border-gray-200 rounded-lg p-4 ${horariosDelDia.length > 0 ? 'bg-green-50' : 'bg-gray-50'}">
+                                    <h4 class="font-bold text-gray-800 mb-3 flex items-center">
+                                        <i class="fas fa-calendar-day mr-2 ${horariosDelDia.length > 0 ? 'text-green-600' : 'text-gray-400'}"></i>
+                                        ${dia}
+                                    </h4>
+                                    ${horariosDelDia.length > 0 
+                                        ? horariosDelDia.map(h => `
+                                            <div class="flex justify-between items-center bg-white p-2 rounded mb-2">
+                                                <span class="text-sm">
+                                                    <i class="fas fa-clock text-indigo-600 mr-1"></i>
+                                                    ${h.hora_inicio} - ${h.hora_fin}
+                                                </span>
+                                                <button onclick="eliminarHorario(${h.id_horario})" class="text-red-600 hover:text-red-800 text-sm">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        `).join('')
+                                        : '<p class="text-sm text-gray-500">Sin horario</p>'
+                                    }
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div class="text-center py-8">
+                        <i class="fas fa-calendar-times text-gray-300 text-6xl mb-4"></i>
+                        <p class="text-gray-500">Este doctor aún no tiene horarios registrados</p>
+                    </div>
+                `;
+            }
+        }
+
+        document.getElementById('form-horario').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const user = JSON.parse(localStorage.getItem('user'));
+            if (user.rol !== 'admin') {
+                alert('Solo los administradores pueden registrar horarios');
+                return;
+            }
+
+            const data = {
+                id_doctor: parseInt(document.getElementById('doctor').value),
+                dia_semana: document.getElementById('dia_semana').value,
+                hora_inicio: document.getElementById('hora_inicio').value + ':00',
+                hora_fin: document.getElementById('hora_fin').value + ':00'
+            };
+            
+            const result = await apiFetch(API_ENDPOINTS.horarios, {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
+            
+            const messageDiv = document.getElementById('form-message');
+            if (result.success) {
+                messageDiv.className = 'mt-4 p-4 rounded bg-green-100 text-green-700';
+                messageDiv.textContent = result.mensaje;
+                messageDiv.classList.remove('hidden');
+                document.getElementById('form-horario').reset();
+                
+                // Actualizar la vista si el doctor actual está seleccionado
+                if (document.getElementById('filter-doctor').value == data.id_doctor) {
+                    loadHorariosDoctor();
+                }
+            } else {
+                messageDiv.className = 'mt-4 p-4 rounded bg-red-100 text-red-700';
+                messageDiv.textContent = result.mensaje;
+                messageDiv.classList.remove('hidden');
+            }
+
+            setTimeout(() => messageDiv.classList.add('hidden'), 5000);
+        });
+
+        async function eliminarHorario(id) {
+            const user = JSON.parse(localStorage.getItem('user'));
+            if (user.rol !== 'admin') {
+                alert('Solo los administradores pueden eliminar horarios');
+                return;
+            }
+
+            if (confirm('¿Está seguro de eliminar este horario?')) {
+                const result = await apiFetch(`${API_ENDPOINTS.horarios}/${id}`, { method: 'DELETE' });
+                if (result.success) {
+                    alert('Horario eliminado exitosamente');
+                    loadHorariosDoctor();
+                }
+            }
+        }
+
+        // Ocultar formulario si no es admin
+        window.addEventListener('load', () => {
+            const user = JSON.parse(localStorage.getItem('user'));
+            if (user && user.rol !== 'admin') {
+                document.getElementById('form-section').classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
