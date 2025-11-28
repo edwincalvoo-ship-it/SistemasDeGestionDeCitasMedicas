@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reportes y Estadísticas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body class="bg-gray-50" onload="requireAuth() && loadReports()">
+    <!-- Header -->
+    <header class="bg-gray-800 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <a href="index.html" class="hover:text-gray-300">
+                        <i class="fas fa-arrow-left text-xl"></i>
+                    </a>
+                    <h1 class="text-2xl font-bold">Reportes y Estadísticas</h1>
+                </div>
+                <button onclick="logout()" class="bg-gray-700 hover:bg-gray-900 px-4 py-2 rounded">
+                    <i class="fas fa-sign-out-alt mr-2"></i>Cerrar Sesión
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Filters -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">
+                <i class="fas fa-calendar-alt mr-2"></i>Filtros de Periodo
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Desde</label>
+                    <input type="date" id="filter-desde" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Hasta</label>
+                    <input type="date" id="filter-hasta" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                </div>
+                <div class="flex items-end">
+                    <button onclick="loadReports()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg">
+                        <i class="fas fa-sync mr-2"></i>Actualizar
+                    </button>
+                </div>
+                <div class="flex items-end">
+                    <button onclick="exportReport()" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg">
+                        <i class="fas fa-download mr-2"></i>Exportar CSV
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg shadow-lg p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <i class="fas fa-calendar-check text-3xl opacity-80"></i>
+                    <span class="text-xs bg-blue-700 px-2 py-1 rounded">Total</span>
+                </div>
+                <h3 id="total-citas" class="text-3xl font-bold mb-1">0</h3>
+                <p class="text-blue-100">Citas Registradas</p>
+            </div>
+
+            <div class="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-lg shadow-lg p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <i class="fas fa-check-double text-3xl opacity-80"></i>
+                    <span class="text-xs bg-green-700 px-2 py-1 rounded">Completadas</span>
+                </div>
+                <h3 id="citas-completadas" class="text-3xl font-bold mb-1">0</h3>
+                <p class="text-green-100">Citas Finalizadas</p>
+            </div>
+
+            <div class="bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-lg shadow-lg p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <i class="fas fa-dollar-sign text-3xl opacity-80"></i>
+                    <span class="text-xs bg-orange-700 px-2 py-1 rounded">Ingresos</span>
+                </div>
+                <h3 id="total-ingresos" class="text-3xl font-bold mb-1">$0</h3>
+                <p class="text-orange-100">Total Facturado</p>
+            </div>
+
+            <div class="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg shadow-lg p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <i class="fas fa-user-md text-3xl opacity-80"></i>
+                    <span class="text-xs bg-purple-700 px-2 py-1 rounded">Activos</span>
+                </div>
+                <h3 id="doctores-activos" class="text-3xl font-bold mb-1">0</h3>
+                <p class="text-purple-100">Doctores Activos</p>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <!-- Citas por Estado -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">
+                    <i class="fas fa-chart-pie mr-2"></i>Citas por Estado
+                </h3>
+                <canvas id="chart-estados"></canvas>
+            </div>
+
+            <!-- Citas por Especialidad -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">
+                    <i class="fas fa-chart-bar mr-2"></i>Citas por Especialidad
+                </h3>
+                <canvas id="chart-especialidades"></canvas>
+            </div>
+        </div>
+
+        <!-- Tendencia de Citas -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">
+                <i class="fas fa-chart-line mr-2"></i>Tendencia de Citas (Últimos 7 Días)
+            </h3>
+            <canvas id="chart-tendencia"></canvas>
+        </div>
+
+        <!-- Top Doctores -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">
+                <i class="fas fa-trophy mr-2"></i>Doctores Más Solicitados
+            </h3>
+            <div id="top-doctores" class="space-y-3">
+                <p class="text-center text-gray-500 py-4">Cargando...</p>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/utils.js"></script>
+    <script>
+        let allCitas = [];
+        let allFacturas = [];
+        let allDoctores = [];
+
+        async function loadReports() {
+            showLoader(document.getElementById('top-doctores'));
+
+            try {
+                // Cargar datos
+                const citasRes = await apiFetch(API_ENDPOINTS.citas);
+                const facturasRes = await apiFetch(API_ENDPOINTS.facturas);
+                const doctoresRes = await apiFetch(API_ENDPOINTS.doctores);
+
+                allCitas = citasRes.success ? citasRes.data : [];
+                allFacturas = facturasRes.success ? facturasRes.data : [];
+                allDoctores = doctoresRes.success ? doctoresRes.data : [];
+
+                // Filtrar por fechas si hay filtros
+                const desde = document.getElementById('filter-desde').value;
+                const hasta = document.getElementById('filter-hasta').value;
+
+                let citasFiltradas = allCitas;
+                if (desde) citasFiltradas = citasFiltradas.filter(c => c.fecha >= desde);
+                if (hasta) citasFiltradas = citasFiltradas.filter(c => c.fecha <= hasta);
+
+                // Actualizar estadísticas
+                updateSummary(citasFiltradas);
+
+                // Actualizar gráficos
+                updateChartEstados(citasFiltradas);
+                updateChartEspecialidades(citasFiltradas);
+                updateChartTendencia(citasFiltradas);
+
+                // Top doctores
+                updateTopDoctores(citasFiltradas);
+            } catch (error) {
+                console.error('Error cargando reportes:', error);
+            }
+        }
+
+        function updateSummary(citas) {
+            const completadas = citas.filter(c => c.estado === 'completada').length;
+            const doctoresActivos = allDoctores.filter(d => d.activo).length;
+            const totalIngresos = allFacturas
+                .filter(f => f.estado === 'pagada')
+                .reduce((sum, f) => sum + parseFloat(f.monto), 0);
+
+            document.getElementById('total-citas').textContent = citas.length;
+            document.getElementById('citas-completadas').textContent = completadas;
+            document.getElementById('doctores-activos').textContent = doctoresActivos;
+            document.getElementById('total-ingresos').textContent = formatCurrency(totalIngresos);
+        }
+
+        function updateChartEstados(citas) {
+            const estados = {};
+            citas.forEach(c => {
+                estados[c.estado] = (estados[c.estado] || 0) + 1;
+            });
+
+            const ctx = document.getElementById('chart-estados');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(estados),
+                    datasets: [{
+                        data: Object.values(estados),
+                        backgroundColor: [
+                            '#FCD34D',
+                            '#3B82F6',
+                            '#10B981',
+                            '#EF4444'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChartEspecialidades(citas) {
+            const especialidades = {};
+            citas.forEach(c => {
+                const esp = c.doctor.split(' - ')[1] || 'Sin especialidad';
+                especialidades[esp] = (especialidades[esp] || 0) + 1;
+            });
+
+            const ctx = document.getElementById('chart-especialidades');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(especialidades),
+                    datasets: [{
+                        label: 'Citas',
+                        data: Object.values(especialidades),
+                        backgroundColor: '#8B5CF6'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChartTendencia(citas) {
+            const ultimos7Dias = {};
+            const hoy = new Date();
+            
+            for (let i = 6; i >= 0; i--) {
+                const fecha = new Date(hoy);
+                fecha.setDate(fecha.getDate() - i);
+                const fechaStr = fecha.toISOString().split('T')[0];
+                ultimos7Dias[fechaStr] = 0;
+            }
+
+            citas.forEach(c => {
+                if (ultimos7Dias.hasOwnProperty(c.fecha)) {
+                    ultimos7Dias[c.fecha]++;
+                }
+            });
+
+            const ctx = document.getElementById('chart-tendencia');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Object.keys(ultimos7Dias).map(f => {
+                        const d = new Date(f);
+                        return d.toLocaleDateString('es', { weekday: 'short', day: 'numeric' });
+                    }),
+                    datasets: [{
+                        label: 'Citas',
+                        data: Object.values(ultimos7Dias),
+                        borderColor: '#3B82F6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateTopDoctores(citas) {
+            const doctoresCount = {};
+            citas.forEach(c => {
+                const doctor = c.doctor.split(' - ')[0];
+                doctoresCount[doctor] = (doctoresCount[doctor] || 0) + 1;
+            });
+
+            const sorted = Object.entries(doctoresCount)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5);
+
+            const container = document.getElementById('top-doctores');
+            if (sorted.length > 0) {
+                container.innerHTML = sorted.map(([doctor, count], index) => `
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 bg-gradient-to-br from-${index === 0 ? 'yellow' : index === 1 ? 'gray' : 'orange'}-400 to-${index === 0 ? 'yellow' : index === 1 ? 'gray' : 'orange'}-600 rounded-full flex items-center justify-center text-white font-bold mr-4">
+                                ${index + 1}
+                            </div>
+                            <div>
+                                <p class="font-semibold text-gray-800">${doctor}</p>
+                                <p class="text-sm text-gray-600">${count} citas</p>
+                            </div>
+                        </div>
+                        <div class="text-2xl">
+                            ${index === 0 ? '🏆' : index === 1 ? '🥈' : index === 2 ? '🥉' : ''}
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<p class="text-center text-gray-500 py-4">No hay datos disponibles</p>';
+            }
+        }
+
+        function exportReport() {
+            const data = allCitas.map(c => ({
+                Fecha: c.fecha,
+                Hora: c.hora,
+                Paciente: c.paciente,
+                Doctor: c.doctor,
+                Estado: c.estado,
+                Motivo: c.motivo || 'N/A'
+            }));
+
+            exportToCSV(data, `reporte_citas_${new Date().toISOString().split('T')[0]}.csv`);
+            showToast('Reporte exportado exitosamente', 'success');
+        }
+
+        // Establecer fechas por defecto (último mes)
+        const hoy = new Date();
+        const haceUnMes = new Date();
+        haceUnMes.setMonth(haceUnMes.getMonth() - 1);
+
+        document.getElementById('filter-desde').value = haceUnMes.toISOString().split('T')[0];
+        document.getElementById('filter-hasta').value = hoy.toISOString().split('T')[0];
+    </script>
+</body>
+</html>
