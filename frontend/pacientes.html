@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Pacientes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50" onload="requireAuth() && loadPacientes()">
+    <!-- Header -->
+    <header class="bg-blue-600 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <a href="index.html" class="hover:text-blue-200">
+                        <i class="fas fa-arrow-left text-xl"></i>
+                    </a>
+                    <h1 class="text-2xl font-bold">Gestión de Pacientes</h1>
+                </div>
+                <button onclick="logout()" class="bg-blue-700 hover:bg-blue-800 px-4 py-2 rounded">
+                    <i class="fas fa-sign-out-alt mr-2"></i>Cerrar Sesión
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Form to add patient -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">
+                <i class="fas fa-user-plus mr-2"></i>Registrar Nuevo Paciente
+            </h2>
+            <form id="form-paciente" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Nombre*</label>
+                    <input type="text" id="nombre" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Apellido*</label>
+                    <input type="text" id="apellido" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Documento*</label>
+                    <input type="text" id="documento" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Correo*</label>
+                    <input type="email" id="correo" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Teléfono*</label>
+                    <input type="tel" id="telefono" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Fecha de Nacimiento*</label>
+                    <input type="date" id="fecha_nacimiento" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-gray-700 font-medium mb-2">Dirección</label>
+                    <input type="text" id="direccion" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="md:col-span-2">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition duration-200">
+                        <i class="fas fa-save mr-2"></i>Registrar Paciente
+                    </button>
+                </div>
+            </form>
+            <div id="form-message" class="hidden mt-4 p-4 rounded"></div>
+        </div>
+
+        <!-- Table of patients -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">
+                <i class="fas fa-list mr-2"></i>Lista de Pacientes
+            </h2>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-gray-700 font-semibold">Nombre</th>
+                            <th class="px-4 py-3 text-left text-gray-700 font-semibold">Documento</th>
+                            <th class="px-4 py-3 text-left text-gray-700 font-semibold">Correo</th>
+                            <th class="px-4 py-3 text-left text-gray-700 font-semibold">Teléfono</th>
+                            <th class="px-4 py-3 text-left text-gray-700 font-semibold">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pacientes-tbody">
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-gray-500">Cargando...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        async function loadPacientes() {
+            const result = await apiFetch(API_ENDPOINTS.pacientes);
+            const tbody = document.getElementById('pacientes-tbody');
+            
+            if (result.success && result.data.length > 0) {
+                tbody.innerHTML = result.data.map(p => `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="px-4 py-3">${p.nombre} ${p.apellido}</td>
+                        <td class="px-4 py-3">${p.documento}</td>
+                        <td class="px-4 py-3">${p.correo}</td>
+                        <td class="px-4 py-3">${p.telefono}</td>
+                        <td class="px-4 py-3">
+                            <button class="text-blue-600 hover:text-blue-800 mr-2" onclick="verPaciente(${p.id_paciente})">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="text-red-600 hover:text-red-800" onclick="eliminarPaciente(${p.id_paciente})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-500">No hay pacientes registrados</td></tr>';
+            }
+        }
+
+        document.getElementById('form-paciente').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                nombre: document.getElementById('nombre').value,
+                apellido: document.getElementById('apellido').value,
+                documento: document.getElementById('documento').value,
+                correo: document.getElementById('correo').value,
+                telefono: document.getElementById('telefono').value,
+                fecha_nacimiento: document.getElementById('fecha_nacimiento').value,
+                direccion: document.getElementById('direccion').value
+            };
+            
+            const result = await apiFetch(API_ENDPOINTS.registrarPaciente, {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
+            
+            const messageDiv = document.getElementById('form-message');
+            if (result.success) {
+                messageDiv.className = 'mt-4 p-4 rounded bg-green-100 text-green-700';
+                messageDiv.textContent = result.mensaje;
+                messageDiv.classList.remove('hidden');
+                document.getElementById('form-paciente').reset();
+                loadPacientes();
+            } else {
+                messageDiv.className = 'mt-4 p-4 rounded bg-red-100 text-red-700';
+                messageDiv.textContent = result.mensaje;
+                messageDiv.classList.remove('hidden');
+            }
+        });
+
+        async function eliminarPaciente(id) {
+            if (confirm('¿Está seguro de eliminar este paciente?')) {
+                const result = await apiFetch(`${API_ENDPOINTS.pacientes}/${id}`, { method: 'DELETE' });
+                if (result.success) {
+                    alert('Paciente eliminado exitosamente');
+                    loadPacientes();
+                }
+            }
+        }
+
+        function verPaciente(id) {
+            window.location.href = `detalle-paciente.html?id=${id}`;
+        }
+    </script>
+</body>
+</html>
+
+    <!-- Agregar después del script existente -->
+    <script>
+        // Aplicar permisos al cargar la página
+        window.addEventListener('load', () => {
+            if (typeof Permissions === 'undefined') return;
+            
+            // Ocultar formulario si no puede registrar pacientes
+            if (!Permissions.can('registrar_paciente')) {
+                const formSection = document.getElementById('form-paciente').closest('.bg-white');
+                if (formSection) {
+                    formSection.style.display = 'none';
+                }
+            }
+            
+            // Ocultar botón de eliminar si no tiene permisos
+            if (!Permissions.can('eliminar_paciente')) {
+                document.querySelectorAll('[onclick^="eliminarPaciente"]').forEach(btn => {
+                    btn.style.display = 'none';
+                });
+            }
+        });
+
+        // Validar permiso antes de eliminar
+        const eliminarPacienteOriginal = eliminarPaciente;
+        eliminarPaciente = async function(id) {
+            if (!Permissions.can('eliminar_paciente')) {
+                showPermissionDenied();
+                return;
+            }
+            eliminarPacienteOriginal(id);
+        };
+    </script>
