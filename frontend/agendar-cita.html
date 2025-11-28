@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agendar Cita Médica</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50" onload="requireAuth() && loadPacientes() && loadDoctores()">
+    <!-- Header -->
+    <header class="bg-purple-600 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <a href="index.html" class="hover:text-purple-200">
+                        <i class="fas fa-arrow-left text-xl"></i>
+                    </a>
+                    <h1 class="text-2xl font-bold">Agendar Nueva Cita</h1>
+                </div>
+                <button onclick="logout()" class="bg-purple-700 hover:bg-purple-800 px-4 py-2 rounded">
+                    <i class="fas fa-sign-out-alt mr-2"></i>Cerrar Sesión
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <!-- Form Card -->
+            <div class="bg-white rounded-lg shadow-md p-8">
+                <div class="flex items-center mb-6">
+                    <div class="bg-purple-100 p-3 rounded-full mr-4">
+                        <i class="fas fa-calendar-plus text-purple-600 text-2xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Nueva Cita Médica</h2>
+                        <p class="text-gray-600">Complete los datos para agendar la cita</p>
+                    </div>
+                </div>
+
+                <form id="form-cita" class="space-y-6">
+                    <!-- Sección 1: Datos del Paciente y Doctor -->
+                    <div class="border-b pb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                            <i class="fas fa-user-friends mr-2 text-purple-600"></i>Información de Participantes
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-2">
+                                    Paciente*
+                                    <span class="text-red-500">●</span>
+                                </label>
+                                <select id="paciente" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition duration-200">
+                                    <option value="">Seleccione un paciente...</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-2">
+                                    Doctor*
+                                    <span class="text-red-500">●</span>
+                                </label>
+                                <select id="doctor" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition duration-200" onchange="loadHorarios()">
+                                    <option value="">Seleccione un doctor...</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sección 2: Fecha y Hora -->
+                    <div class="border-b pb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                            <i class="fas fa-clock mr-2 text-purple-600"></i>Fecha y Hora de la Cita
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-2">
+                                    Fecha*
+                                    <span class="text-red-500">●</span>
+                                </label>
+                                <input type="date" id="fecha" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition duration-200">
+                                <p class="text-sm text-gray-500 mt-1">Seleccione la fecha de la cita</p>
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-2">
+                                    Hora*
+                                    <span class="text-red-500">●</span>
+                                </label>
+                                <input type="time" id="hora" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition duration-200">
+                                <p class="text-sm text-gray-500 mt-1">Seleccione la hora de la cita</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Botón Verificar Disponibilidad -->
+                        <div class="mt-4">
+                            <button type="button" onclick="verificarDisponibilidad()" class="bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-lg shadow-md transition duration-200">
+                                <i class="fas fa-check-circle mr-2"></i>Verificar Disponibilidad
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Sección 3: Información Adicional -->
+                    <div class="border-b pb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                            <i class="fas fa-notes-medical mr-2 text-purple-600"></i>Información Adicional
+                        </h3>
+                        <div class="grid grid-cols-1 gap-6">
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-2">Motivo de Consulta*</label>
+                                <textarea id="motivo" required rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition duration-200" placeholder="Describa el motivo de la consulta..."></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-2">Observaciones</label>
+                                <textarea id="observaciones" rows="2" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition duration-200" placeholder="Observaciones adicionales (opcional)..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Información de Horarios del Doctor -->
+                    <div id="horarios-info" class="bg-blue-50 border border-blue-200 rounded-lg p-4 hidden">
+                        <h4 class="font-semibold text-blue-800 mb-2">
+                            <i class="fas fa-info-circle mr-2"></i>Horarios del Doctor Seleccionado
+                        </h4>
+                        <div id="horarios-list" class="text-sm text-blue-700">
+                            <!-- Se llena dinámicamente -->
+                        </div>
+                    </div>
+
+                    <!-- Botones de Acción -->
+                    <div class="flex justify-end space-x-4 pt-6">
+                        <a href="index.html" class="px-6 py-3 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg font-medium transition duration-200">
+                            <i class="fas fa-times mr-2"></i>Cancelar
+                        </a>
+                        <button type="submit" class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium shadow-md transition duration-200">
+                            <i class="fas fa-save mr-2"></i>Agendar Cita
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/utils.js"></script>
+    <script>
+        async function loadPacientes() {
+            const result = await apiFetch(API_ENDPOINTS.pacientes);
+            const select = document.getElementById('paciente');
+            if (result.success && result.data.length > 0) {
+                result.data.forEach(p => {
+                    select.innerHTML += `<option value="${p.id_paciente}">${p.nombre} ${p.apellido} - ${p.documento}</option>`;
+                });
+            }
+        }
+
+        async function loadDoctores() {
+            const result = await apiFetch(API_ENDPOINTS.doctores);
+            const select = document.getElementById('doctor');
+            if (result.success && result.data.length > 0) {
+                result.data.forEach(d => {
+                    select.innerHTML += `<option value="${d.id_doctor}">${d.nombre} ${d.apellido} - ${d.especialidad}</option>`;
+                });
+            }
+        }
+
+        async function loadHorarios() {
+            const doctorId = document.getElementById('doctor').value;
+            if (!doctorId) {
+                document.getElementById('horarios-info').classList.add('hidden');
+                return;
+            }
+
+            const result = await apiFetch(`/api/horarios/doctor/${doctorId}`);
+            const container = document.getElementById('horarios-list');
+            const info = document.getElementById('horarios-info');
+            
+            if (result.success && result.data.length > 0) {
+                const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+                const horariosAgrupados = {};
+                
+                result.data.forEach(h => {
+                    const dia = diasSemana[h.dia_semana];
+                    if (!horariosAgrupados[dia]) {
+                        horariosAgrupados[dia] = [];
+                    }
+                    horariosAgrupados[dia].push(`${h.hora_inicio} - ${h.hora_fin}`);
+                });
+
+                container.innerHTML = Object.entries(horariosAgrupados)
+                    .map(([dia, horas]) => `<p><strong>${dia}:</strong> ${horas.join(', ')}</p>`)
+                    .join('');
+                info.classList.remove('hidden');
+            } else {
+                container.innerHTML = '<p>No hay horarios disponibles para este doctor</p>';
+                info.classList.remove('hidden');
+            }
+        }
+
+        async function verificarDisponibilidad() {
+            const doctorId = document.getElementById('doctor').value;
+            const fecha = document.getElementById('fecha').value;
+            const hora = document.getElementById('hora').value;
+
+            if (!doctorId || !fecha || !hora) {
+                showToast('Por favor complete doctor, fecha y hora', 'warning');
+                return;
+            }
+
+            try {
+                const result = await apiFetch(API_ENDPOINTS.citas);
+                
+                if (result.success) {
+                    const doctorSelect = document.getElementById('doctor');
+                    const doctorTexto = doctorSelect.options[doctorSelect.selectedIndex].text;
+                    
+                    const citasConflicto = result.data.filter(c => {
+                        return c.fecha === fecha && 
+                               c.hora.substring(0, 5) === hora && 
+                               doctorTexto.includes(c.doctor) &&
+                               (c.estado === 'pendiente' || c.estado === 'confirmada');
+                    });
+
+                    if (citasConflicto.length > 0) {
+                        showToast('⚠️ El horario NO está disponible. Ya existe una cita agendada.', 'error');
+                    } else {
+                        showToast('✅ El horario está disponible. Puede agendar la cita.', 'success');
+                    }
+                }
+            } catch (error) {
+                console.error('Error verificando disponibilidad:', error);
+                showToast('Error al verificar disponibilidad', 'error');
+            }
+        }
+
+        document.getElementById('form-cita').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const horaInput = document.getElementById('hora').value;
+            const horaFormateada = horaInput.length === 5 ? `${horaInput}:00` : horaInput;
+            
+            const data = {
+                id_paciente: parseInt(document.getElementById('paciente').value),
+                id_doctor: parseInt(document.getElementById('doctor').value),
+                fecha: document.getElementById('fecha').value,
+                hora: horaFormateada,
+                motivo: document.getElementById('motivo').value,
+                observaciones: document.getElementById('observaciones').value || null
+            };
+
+            const result = await apiFetch(API_ENDPOINTS.citas, {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
+
+            if (result.success) {
+                showToast('Cita agendada exitosamente', 'success');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1500);
+            } else {
+                showToast('Error: ' + result.mensaje, 'error');
+            }
+        });
+
+        // Establecer fecha mínima como hoy
+        document.getElementById('fecha').min = new Date().toISOString().split('T')[0];
+    </script>
+</body>
+</html>
