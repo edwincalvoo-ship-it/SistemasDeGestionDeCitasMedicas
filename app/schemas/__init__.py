@@ -1,4 +1,7 @@
-type nul > app/__init__.py
-type nul > app/routers/__init__.py
-type nul > app/models/__init__.py
-type nul > app/schemas/__init__.py
+"""
+Módulo de schemas - Modelos de validación con Pydantic
+"""
+
+from app.schemas import user, paciente, doctor, cita
+
+__all__ = ["user", "paciente", "doctor", "cita"]
