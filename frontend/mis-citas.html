@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-<body class="bg-gray-50" onload="requireAuth() && loadMisCitas()">
+<body class="bg-gray-50" onload="requireAuth() && checkAccess() && loadDoctores() && loadMisCitas()">
     <!-- Header -->
     <header class="bg-teal-600 text-white shadow-lg">
         <div class="container mx-auto px-4 py-6">
@@ -25,14 +25,20 @@
         </div>
     </header>
 
-    <!-- Main Content citas -->
+    <!-- Main Content -->
     <main class="container mx-auto px-4 py-8">
         <!-- Filtros -->
         <div class="bg-white rounded-lg shadow-md p-6 mb-8">
             <h3 class="text-lg font-bold text-gray-800 mb-4">
                 <i class="fas fa-filter mr-2"></i>Filtros
             </h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Doctor</label>
+                    <select id="filter-doctor" class="w-full px-4 py-2 border border-gray-300 rounded-lg" onchange="filterCitas()">
+                        <option value="">Todos los doctores</option>
+                    </select>
+                </div>
                 <div>
                     <label class="block text-gray-700 font-medium mb-2">Estado</label>
                     <select id="filter-estado" class="w-full px-4 py-2 border border-gray-300 rounded-lg" onchange="filterCitas()">
@@ -79,6 +85,38 @@
         let todasCitas = [];
         let citasFiltradas = [];
 
+        function checkAccess() {
+            const user = Permissions.getCurrentUser();
+            if (!user) {
+                window.location.href = 'index.html';
+                return false;
+            }
+            
+            // Solo Admin y Doctor pueden acceder a este módulo
+            if (user.rol !== 'admin' && user.rol !== 'doctor') {
+                showToast('No tienes permisos para acceder a este módulo', 'error');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 2000);
+                return false;
+            }
+            
+            return true;
+        }
+
+        async function loadDoctores() {
+            const result = await apiFetch(API_ENDPOINTS.doctores);
+            if (result.success) {
+                const select = document.getElementById('filter-doctor');
+                result.data.forEach(doctor => {
+                    const option = document.createElement('option');
+                    option.value = `${doctor.nombre} ${doctor.apellido}`;
+                    option.textContent = `Dr. ${doctor.nombre} ${doctor.apellido}`;
+                    select.appendChild(option);
+                });
+            }
+        }
+
         async function loadMisCitas() {
             const user = Permissions.getCurrentUser();
             if (!user) return;
@@ -87,22 +125,15 @@
                 const result = await apiFetch(API_ENDPOINTS.citas);
                 
                 if (result.success) {
-                    // Filtrar según rol
+                    // Filtrar según rol (solo admin y doctor pueden acceder a este módulo)
                     if (user.rol === 'admin') {
-                        todasCitas = result.data; // Admin ve todas
+                        todasCitas = result.data; // Admin ve todas las citas
                     } else if (user.rol === 'doctor') {
                         // Doctor ve solo sus citas
                         const nombreCompleto = `${user.nombre || ''} ${user.apellido || ''}`.trim().toLowerCase();
                         todasCitas = result.data.filter(c => {
                             const doctorNombre = (c.doctor || '').toLowerCase();
                             return doctorNombre.includes(nombreCompleto) || nombreCompleto.includes(doctorNombre);
-                        });
-                    } else if (user.rol === 'paciente') {
-                        // Paciente ve solo sus citas
-                        const nombreCompleto = `${user.nombre || ''} ${user.apellido || ''}`.trim().toLowerCase();
-                        todasCitas = result.data.filter(c => {
-                            const pacienteNombre = (c.paciente || '').toLowerCase();
-                            return pacienteNombre.includes(nombreCompleto) || nombreCompleto.includes(pacienteNombre);
                         });
                     }
                     
@@ -168,15 +199,17 @@
         }
 
         function filterCitas() {
+            const doctor = document.getElementById('filter-doctor').value;
             const estado = document.getElementById('filter-estado').value;
             const desde = document.getElementById('filter-desde').value;
             const hasta = document.getElementById('filter-hasta').value;
 
             citasFiltradas = todasCitas.filter(c => {
+                const matchDoctor = !doctor || c.doctor === doctor;
                 const matchEstado = !estado || c.estado === estado;
                 const matchDesde = !desde || c.fecha >= desde;
                 const matchHasta = !hasta || c.fecha <= hasta;
-                return matchEstado && matchDesde && matchHasta;
+                return matchDoctor && matchEstado && matchDesde && matchHasta;
             });
 
             displayCitas(citasFiltradas);

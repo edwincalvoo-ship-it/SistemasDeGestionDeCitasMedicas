@@ -3,21 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detalle de Cita</title>
+    <title>Detalle de Paciente</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-50" onload="requireAuth() && loadDetalle()">
-    <header class="bg-purple-600 text-white shadow-lg">
+    <header class="bg-blue-600 text-white shadow-lg">
         <div class="container mx-auto px-4 py-6">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-4">
-                    <a href="citas.html" class="hover:text-purple-200">
+                    <a href="pacientes.html" class="hover:text-blue-200">
                         <i class="fas fa-arrow-left text-xl"></i>
                     </a>
-                    <h1 class="text-2xl font-bold">Detalle de Cita</h1>
+                    <h1 class="text-2xl font-bold">Detalle de Paciente</h1>
                 </div>
-                <button onclick="logout()" class="bg-purple-700 hover:bg-purple-800 px-4 py-2 rounded">
+                <button onclick="logout()" class="bg-blue-700 hover:bg-blue-800 px-4 py-2 rounded">
                     <i class="fas fa-sign-out-alt mr-2"></i>Cerrar Sesión
                 </button>
             </div>
@@ -33,61 +33,51 @@
     <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/main.js"></script>
+    <script src="js/utils.js"></script>
     <script>
         async function loadDetalle() {
             const urlParams = new URLSearchParams(window.location.search);
             const id = urlParams.get('id');
             
             if (!id) {
-                window.location.href = 'citas.html';
+                window.location.href = 'pacientes.html';
                 return;
             }
 
-            const result = await apiFetch(API_ENDPOINTS.citas);
+            // Usar endpoint específico de paciente por ID
+            const result = await apiFetch(`${API_ENDPOINTS.pacientes}/${id}`);
             if (result.success) {
-                const cita = result.data.find(c => c.id_cita == id);
-                if (cita) displayDetalle(cita);
+                displayDetalle(result.data);
+            } else {
+                showToast('Error al cargar paciente: ' + result.mensaje, 'error');
+                setTimeout(() => window.location.href = 'pacientes.html', 2000);
             }
         }
 
-        function displayDetalle(c) {
-            const estadoColor = {
-                'pendiente': 'bg-yellow-100 text-yellow-800',
-                'confirmada': 'bg-blue-100 text-blue-800',
-                'completada': 'bg-green-100 text-green-800',
-                'cancelada': 'bg-red-100 text-red-800'
-            };
-
+        function displayDetalle(p) {
+            const edad = calculateAge(p.fecha_nacimiento);
             document.getElementById('detalle-container').innerHTML = `
-                <h2 class="text-2xl font-bold text-gray-800 mb-6">Cita #${c.id_cita}</h2>
+                <div class="flex items-center mb-6 pb-6 border-b">
+                    <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mr-4">
+                        <i class="fas fa-user text-blue-600 text-3xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">${p.nombre} ${p.apellido}</h2>
+                        <p class="text-gray-600">Documento: ${p.documento}</p>
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <h3 class="font-bold text-gray-700 mb-3">Información de la Cita</h3>
+                        <h3 class="font-bold text-gray-700 mb-3">Información Personal</h3>
                         <div class="space-y-2">
-                            <p><i class="fas fa-calendar text-purple-600 mr-2"></i><strong>Fecha:</strong> ${c.fecha}</p>
-                            <p><i class="fas fa-clock text-purple-600 mr-2"></i><strong>Hora:</strong> ${c.hora}</p>
-                            <p><i class="fas fa-info-circle text-purple-600 mr-2"></i><strong>Estado:</strong> 
-                                <span class="ml-2 px-3 py-1 rounded-full text-xs font-semibold ${estadoColor[c.estado]}">${c.estado}</span>
-                            </p>
+                            <p><i class="fas fa-id-card text-blue-600 mr-2"></i><strong>Documento:</strong> ${p.documento}</p>
+                            <p><i class="fas fa-envelope text-blue-600 mr-2"></i><strong>Correo:</strong> ${p.correo}</p>
+                            <p><i class="fas fa-phone text-blue-600 mr-2"></i><strong>Teléfono:</strong> ${p.telefono}</p>
+                            <p><i class="fas fa-birthday-cake text-blue-600 mr-2"></i><strong>Fecha Nacimiento:</strong> ${formatDate(p.fecha_nacimiento)} (${edad} años)</p>
+                            ${p.direccion ? `<p><i class="fas fa-map-marker-alt text-blue-600 mr-2"></i><strong>Dirección:</strong> ${p.direccion}</p>` : ''}
                         </div>
                     </div>
-                    <div>
-                        <h3 class="font-bold text-gray-700 mb-3">Personas Involucradas</h3>
-                        <div class="space-y-2">
-                            <p><i class="fas fa-user text-purple-600 mr-2"></i><strong>Paciente:</strong> ${c.paciente}</p>
-                            <p><i class="fas fa-user-md text-purple-600 mr-2"></i><strong>Doctor:</strong> ${c.doctor}</p>
-                        </div>
-                    </div>
-                    <div class="md:col-span-2">
-                        <h3 class="font-bold text-gray-700 mb-3">Motivo de Consulta</h3>
-                        <p class="text-gray-600">${c.motivo || 'Sin motivo especificado'}</p>
-                    </div>
-                    ${c.observaciones ? `
-                        <div class="md:col-span-2">
-                            <h3 class="font-bold text-gray-700 mb-3">Observaciones</h3>
-                            <p class="text-gray-600">${c.observaciones}</p>
-                        </div>
-                    ` : ''}
                 </div>
             `;
         }

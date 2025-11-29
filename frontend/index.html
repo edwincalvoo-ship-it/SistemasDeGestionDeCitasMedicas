@@ -117,7 +117,7 @@
                         </div>
                     </div>
 
-                    <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition duration-200 cursor-pointer" onclick="window.location.href='citas.html'">
+                    <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition duration-200 cursor-pointer" onclick="window.location.href='gestionar-citas.html'">
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-gray-600 text-sm font-medium">Citas Hoy</p>
@@ -388,11 +388,10 @@
                     'action-reportes'
                 ];
             } else if (rol === 'paciente') {
-                // PACIENTE: agendar y consultar citas
+                // PACIENTE: solo agendar citas y consultar horarios
                 accionesPermitidas = [
                     'action-consulta-horarios',
-                    'action-agendamiento-citas',
-                    'action-consulta-citas'
+                    'action-agendamiento-citas'
                 ];
             }
 

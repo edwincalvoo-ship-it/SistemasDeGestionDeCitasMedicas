@@ -80,7 +80,10 @@ def listar_pacientes(
                 "apellido": p.apellido,
                 "documento": p.documento,
                 "correo": p.correo,
-                "telefono": p.telefono
+                "telefono": p.telefono,
+                "fecha_nacimiento": str(p.fecha_nacimiento) if p.fecha_nacimiento else None,
+                "direccion": p.direccion,
+                "created_at": str(p.created_at) if hasattr(p, 'created_at') else None
             }
             for p in pacientes
         ]

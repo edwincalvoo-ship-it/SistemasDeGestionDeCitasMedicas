@@ -106,7 +106,15 @@ function confirmAction(message, onConfirm) {
  * Formatea fecha a formato local
  */
 function formatDate(dateString) {
-    const date = new Date(dateString);
+    if (!dateString) return 'N/A';
+    
+    // Si la fecha viene en formato YYYY-MM-DD, agregarle la hora para evitar problemas de zona horaria
+    const dateStr = dateString.includes('T') ? dateString : dateString + 'T00:00:00';
+    const date = new Date(dateStr);
+    
+    // Validar que la fecha sea válida
+    if (isNaN(date.getTime())) return 'N/A';
+    
     return date.toLocaleDateString('es-CO', {
         year: 'numeric',
         month: 'long',
@@ -197,13 +205,23 @@ function debounce(func, wait) {
  * Calcula edad desde fecha de nacimiento
  */
 function calculateAge(birthDate) {
+    if (!birthDate) return 0;
+    
+    // Si la fecha viene en formato YYYY-MM-DD, agregarle la hora para evitar problemas de zona horaria
+    const dateStr = birthDate.includes('T') ? birthDate : birthDate + 'T00:00:00';
+    const birth = new Date(dateStr);
+    
+    // Validar que la fecha sea válida
+    if (isNaN(birth.getTime())) return 0;
+    
     const today = new Date();
-    const birth = new Date(birthDate);
     let age = today.getFullYear() - birth.getFullYear();
     const m = today.getMonth() - birth.getMonth();
+    
     if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
         age--;
     }
+    
     return age;
 }
 
